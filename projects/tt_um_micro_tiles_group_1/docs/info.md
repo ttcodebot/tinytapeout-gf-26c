@@ -1,9 +1,8 @@
 ## How it works
 
-This project is a container for four micro tiles: small, separately hardened designs with a clock, a reset,
-eight inputs and eight outputs. `uio[1:0]` selects one of them. The selected micro tile gets the clock, the
-reset and the inputs of the project and drives its outputs. The other micro tiles are held in reset, with
-their clock and inputs low.
+This is a container for four micro tiles: small, separately hardened designs with a clock, a reset,
+eight inputs and eight outputs. `uio[1:0]` selects one of them. The selected micro tile gets the clock,
+the reset and the inputs of the project and drives its outputs. The others are held in reset.
 
 | `uio[1:0]` | Micro tile | Author |
 | --- | --- | --- |

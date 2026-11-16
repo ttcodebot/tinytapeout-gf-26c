@@ -4,4 +4,4 @@
 	branch = dev-gf
 [submodule "tt"]
 	path = tt
-	url = https://github.com/TinyTapeout/tt-support-tools
+	url = https://github.com/ttcodebot/tt-support-tools
