@@ -1,10 +1,11 @@
 import binascii
+import json
 import os
 import re
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, Timer
+from cocotb.triggers import ClockCycles, FallingEdge, Timer
 
 
 async def enable_design(dut, mux_addr):
@@ -124,3 +125,78 @@ async def test_rom(dut):
 
     crc32 = int.from_bytes(rom_data[252:256], "little")
     assert crc32 == binascii.crc32(rom_data[0:252])
+
+
+def load_micro_tile_groups():
+    """
+    Returns the micro tile groups on this chip as a list of (mux address, group macro, micro tiles),
+    where each micro tile is (select value, macro, reference vectors).
+    Only the groups that are in shuttle_index.json (i.e. on the chip being simulated) are returned.
+    """
+    root = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../..")
+    groups_file = os.path.join(root, "projects/groups.json")
+    index_file = os.path.join(root, "shuttle_index.json")
+    if not os.path.exists(groups_file) or not os.path.exists(index_file):
+        return []
+    with open(groups_file) as f:
+        group_macros = json.load(f)["groups"]
+    with open(index_file) as f:
+        addresses = {p["macro"]: p["address"] for p in json.load(f)["projects"]}
+    groups = []
+    for group in group_macros:
+        if group not in addresses:
+            continue
+        with open(os.path.join(root, "projects", group, "subprojects.json")) as f:
+            subprojects = json.load(f)["projects"]
+        tiles = []
+        for index in sorted(subprojects, key=int):
+            if subprojects[index] is None:
+                continue  # empty slot
+            macro = subprojects[index]["macro"]
+            vectors_file = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "micro_tiles", f"{macro}.json"
+            )
+            with open(vectors_file) as f:
+                tiles.append((int(index), macro, json.load(f)["vectors"]))
+        groups.append((addresses[group], group, tiles))
+    return groups
+
+
+@cocotb.test(skip=len(load_micro_tile_groups()) == 0)
+async def test_micro_tile_groups(dut):
+    """Selects each micro tile of each micro tile group through the mux and checks its outputs."""
+    clock = Clock(dut.clk, 100, unit="ns")  # 10 MHz
+    cocotb.start_soon(clock.start())
+
+    for address, group, tiles in load_micro_tile_groups():
+        dut.uio_in.value = 0
+        dut.ui_in.value = 0
+        dut.rst_n.value = 0
+        await enable_design(dut, address)
+        await ClockCycles(dut.clk, 5)
+
+        for sel, macro, vectors in tiles:
+            dut._log.info(f"{group} at {address}, micro tile {sel}: {macro}")
+            # uio_in[1:0] selects the micro tile
+            dut.uio_in.value = sel
+            dut.rst_n.value = 0
+            dut.ui_in.value = 0
+            await ClockCycles(dut.clk, 2)
+            await FallingEdge(dut.clk)
+            checked = 0
+            for step, vector in enumerate(vectors):
+                # Inputs change on the falling edge; the outputs are checked on the next one
+                dut.rst_n.value = vector["rst_n"]
+                dut.ui_in.value = vector["ui_in"]
+                await FallingEdge(dut.clk)
+                actual = str(dut.uo_out.value).lower()
+                for bit, (expected_bit, actual_bit) in enumerate(
+                    zip(vector["uo_out"], actual)
+                ):
+                    if expected_bit in "01":
+                        assert (
+                            actual_bit == expected_bit
+                        ), f"{macro} step {step}: uo_out[{7 - bit}] is {actual_bit}, expected {expected_bit}"
+                        checked += 1
+            dut._log.info(f"{macro}: {checked} output bits checked")
+            assert checked >= len(vectors)

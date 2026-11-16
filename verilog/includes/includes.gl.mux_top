@@ -6,3 +6,4 @@
 -v $(TT_GL_VERILOG)/tt_pg_3v3_hp_2.v
 -v $(TT_GL_VERILOG)/tt_pg_3v3_hp_4.v
 -v $(USER_PROJECT_VERILOG)/../projects/tt_um_factory_test/tt_um_factory_test.v
+-v $(USER_PROJECT_VERILOG)/../projects/tt_um_micro_tiles_group_1/tt_um_micro_tiles_group_1.v
