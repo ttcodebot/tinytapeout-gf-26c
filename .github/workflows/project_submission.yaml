@@ -2,6 +2,10 @@ name: project_submission
 
 on:
   workflow_dispatch:
+    inputs:
+      oas_files:
+        description: 'Project OAS files to precheck when started by hand (space separated)'
+        default: ''
   pull_request:
     paths:
       - projects/tt_um_*/**
@@ -37,7 +41,7 @@ jobs:
 
   precheck:
     name: Run precheck
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || inputs.oas_files != ''
     runs-on: ubuntu-24.04
     env:
       PDK: 'gf180mcuD'
@@ -80,6 +84,7 @@ jobs:
 
       - name: Get all project OAS files that have changed
         id: changed-files
+        if: github.event_name == 'pull_request'
         uses: tj-actions/changed-files@v47
         with:
           files: projects/tt_um_*/*.oas
@@ -87,9 +92,9 @@ jobs:
       - name: Run precheck
         shell: bash
         working-directory: tt/precheck
-        if: steps.changed-files.outputs.any_changed == 'true'
+        if: steps.changed-files.outputs.any_changed == 'true' || inputs.oas_files != ''
         env:
-          OAS_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          OAS_FILES: ${{ steps.changed-files.outputs.all_changed_files || inputs.oas_files }}
         run: |
           for oas_file in $OAS_FILES; do
             nix-shell --run "python precheck.py --gds ${{ github.workspace }}/${oas_file} --tech ${{ env.PDK }}"
@@ -99,16 +104,16 @@ jobs:
         uses: test-summary/action@v2.6
         with:
           paths: 'tt/precheck/reports/results.xml'
-        if: (success() || failure()) && steps.changed-files.outputs.any_changed == 'true'
+        if: (success() || failure()) && (steps.changed-files.outputs.any_changed == 'true' || inputs.oas_files != '')
 
       - name: Capture test results
         shell: bash
         working-directory: tt/precheck
-        if: (success() || failure()) && steps.changed-files.outputs.any_changed == 'true'
+        if: (success() || failure()) && (steps.changed-files.outputs.any_changed == 'true' || inputs.oas_files != '')
         run: cat reports/results.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload reports
-        if: (success() || failure()) && steps.changed-files.outputs.any_changed == 'true'
+        if: (success() || failure()) && (steps.changed-files.outputs.any_changed == 'true' || inputs.oas_files != '')
         uses: actions/upload-artifact@v6
         with:
           name: precheck-reports
