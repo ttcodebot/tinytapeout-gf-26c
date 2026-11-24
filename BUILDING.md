@@ -6,7 +6,7 @@
 export TT_SHELL=`pwd`/tt-multiplexer/shell.nix
 export PDK_ROOT=`pwd`/.ciel
 export PDK=gf180mcuD
-export PDK_VERSION=1689ac3f2dc763876eaf967227c7dfe831b031ae
+export PDK_VERSION=2fdf40d5736413bb321c31418462aefc17b919b8
 export TT_CONFIG=gf180mcuD.yaml:../../mux_overrides.yaml
 ```
 
