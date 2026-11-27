@@ -1,7 +1,7 @@
 [submodule "tt-multiplexer"]
 	path = tt-multiplexer
-	url = https://github.com/TinyTapeout/tt-multiplexer
-	branch = dev-gf
+	url = https://github.com/ttcodebot/tt-multiplexer.git
+	branch = gf180mcuD-vendored-fill
 [submodule "tt"]
 	path = tt
 	url = https://github.com/TinyTapeout/tt-support-tools
