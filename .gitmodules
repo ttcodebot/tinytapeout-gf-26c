@@ -1,7 +1,7 @@
 [submodule "tt-multiplexer"]
 	path = tt-multiplexer
 	url = https://github.com/ttcodebot/tt-multiplexer.git
-	branch = gf180mcuD-pdk-2fdf40d5
+	branch = gf180mcuD-psm-exceptpg
 [submodule "tt"]
 	path = tt
 	url = https://github.com/TinyTapeout/tt-support-tools
